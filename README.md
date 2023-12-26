@@ -17,8 +17,8 @@ void mainCRTStartup()
   }
   else
   {
-    // Required CPU unavailable. Present an error message explaining why the program can't be run
-    // and exit
+    // Required CPU featyres unavailable. Present an error message explaining why the program can't
+    // be run and exit early
   }
   
   ExitPoocess(0);
