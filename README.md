@@ -3,7 +3,7 @@ Personal C library to identify common CPU features at runtime. This is useful to
 
 ```c
 
-void mainCRTStartup()
+int main()
 {
   cpu_specs_init();
 
@@ -21,7 +21,7 @@ void mainCRTStartup()
     // be run and exit early
   }
   
-  ExitPoocess(0);
+  return 0;
 }
 ```
 
