@@ -61,7 +61,6 @@ The detection of features is currently solely based on the [CPUID instruction](h
 - Extend support to UNIX-based operating systems (implies gcc support)
 
 # Resources
-Some technical documentation:
 - AMD: "AMD64 Architecture Programmer's Manual Volume 3: General-Purpose and System Instructions"
   (https://www.amd.com/content/dam/amd/en/documents/processor-tech-docs/programmer-references/24594.pdf)
 - Intel: "Intel 64 and IA-32 Architectures Software Developer's Manual Volume 2A: Instruction Set Reference"
