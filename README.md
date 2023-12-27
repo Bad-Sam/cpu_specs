@@ -13,11 +13,11 @@ int main()
 
   if (can_run_program)
   {
-    // Required CPU features available, run the program
+    // Required CPU features available. Run the program
   }
   else
   {
-    // Required CPU featyres unavailable. Present an error message explaining why the program can't
+    // Required CPU features unavailable. Present an error message explaining why the program can't
     // be run and exit early
   }
   
