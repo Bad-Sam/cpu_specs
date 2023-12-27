@@ -35,8 +35,8 @@ cpu_specs is designed to run on:
 cpu_specs can detect:
 - L1, L2 and L3 data cache size and attached core count
 - Cache line size
-- Number of threads per core
-- Total number of core in the CPU
+- Number of threads per physical core
+- Total number of physical core in the CPU
 - Available instructions:
   - SIMD instruction sets (SSE1, SSE2, SSE3, SSSE3, SSE4.1, SEE4.2, AVX1, AVX2, AVX512F, FMA3)
   - Bit manipulation instructions (POPCNT, LZNCT, TZCNT, BMI1, BMI2, TBM)
