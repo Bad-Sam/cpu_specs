@@ -90,9 +90,6 @@ struct cpu_specs
   s32 instructions;
 };
 
-// Page Size Extension (PSE36) (simpler) | 4 MB pages, but no more 4 KB granularity after 4 GB
-// PAE (Page Address Extension) | 2 MB pages
-
 struct cpu_identity
 {
   // CPU family, which represents one or more processors belonging to a group that possesses some
