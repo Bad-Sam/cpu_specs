@@ -2,6 +2,7 @@
 Personal C library to identify common CPU features at runtime. This is useful to perform CPU dispatching.
 
 ```c
+#include "cpu_specs.h"
 
 int main()
 {
