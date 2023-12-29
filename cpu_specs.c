@@ -1,13 +1,50 @@
 #include "cpu_specs.h"
+#include "isa.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-//// Helpers and global
+//// Helper
 #define KiB(x) ((x) * 1024)
 
-__declspec(dllimport) void __stdcall __cpuidex(s32 out[4], s32 func, s32 subfunc);
 
-struct cpu_specs    cpu_specs;
-struct cpu_identity cpu_identity;
+///////////////////////////////////////////////////////////////////////////////////////////////////
+//// Intrinsics
+// Declare the specific intrinsics used below as extern, rather than including the 1025-line-long
+// intrin.h header 
+#if defined(ISA_x64)
+#  define eflags_type u64
+#elif defined(ISA_x86)
+#  define eflags_type u32
+#endif
+
+extern eflags_type __readeflags(void);
+extern void        __writeeflags(eflags_type new_eflags);
+extern void        __cpuidex(s32 out[4], s32 func, s32 sub_func);
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+//// Globals
+struct cpu_specs cpu_specs =
+{
+  .cache_level_specs[L1].data_cache_size     = KiB(4),
+  .cache_level_specs[L1].attached_core_count = 1,
+  .cache_level_specs[L2].data_cache_size     = 0,
+  .cache_level_specs[L2].attached_core_count = 0,
+  .cache_level_specs[L3].data_cache_size     = 0,
+  .cache_level_specs[L3].attached_core_count = 0,
+  .cache_line_size                           = 64,
+  .threads_per_core                          = 1,
+  .core_count                                = 1,
+  .instructions                              = 0
+};
+
+struct cpu_identity cpu_identity =
+{
+  .family       = 0,
+  .model        = 0,
+  .stepping     = 0,
+  .manufacturer = "Unknown",
+  .name         = "Unknown"
+};
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -265,6 +302,22 @@ static void cpu_specs_intel_get_instructions(struct cpuid_ctx cpuid_ctx)
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 //// CPU-independent functions
+u32 cpuid_is_available(void)
+{
+  // If bit 21 (ID) of the FLAGS register can be successfully changed, then CPUID is supported.
+  // Otherwise, CPUID is unavailable. Checking whether bit 21 is set isn't enough: CPUID can be
+  // called even with bit 21 being 0.
+  const eflags_type flags_cpuid_mask = (1 << 21);
+
+  eflags_type orig_eflags     = __readeflags();
+  eflags_type modified_eflags = orig_eflags ^ flags_cpuid_mask;
+  __writeeflags(modified_eflags);
+  eflags_type updated_eflags = __readeflags();
+
+  return (modified_eflags == updated_eflags);
+  // The original state of the FLAGS register is automatically restored to its previous state
+}
+
 static void cpu_specs_get_common_instructions(struct cpuid_ctx cpuid_ctx)
 {
   s32 cpuid_out[4];
@@ -299,27 +352,10 @@ static void cpu_specs_get_common_instructions(struct cpuid_ctx cpuid_ctx)
   }
 }
 
-static void cpu_specs_set_defaults()
-{
-  // If the following details of the CPU specs cannot be retrieved through CPUID, CPUID is either
-  // unavailable, or its functions don't cover some of these features. The CPU may be old, so
-  // assume low specs
-  cpu_specs.cache_level_specs[L1].data_cache_size     = KiB(4);
-  cpu_specs.cache_level_specs[L1].attached_core_count = 1;
-  cpu_specs.cache_level_specs[L2].data_cache_size     = 0;
-  cpu_specs.cache_level_specs[L2].attached_core_count = 0;
-  cpu_specs.cache_level_specs[L3].data_cache_size     = 0;
-  cpu_specs.cache_level_specs[L3].attached_core_count = 0;
-  cpu_specs.cache_line_size                           = 64;
-  cpu_specs.threads_per_core                          = 1;
-  cpu_specs.core_count                                = 1;
-  cpu_specs.instructions                              = 0;
-}
-
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 //// CPUID context
-struct cpuid_ctx cpuid_ctx_get()
+struct cpuid_ctx cpuid_ctx_get(void)
 {
   struct cpuid_ctx cpuid_ctx;
   
@@ -336,12 +372,12 @@ struct cpuid_ctx cpuid_ctx_get()
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 //// CPU specs
-void cpu_specs_init()
+void cpu_specs_init(void)
 {
+  // CPUID must be available to initiliaze the CPU's specs. See cpuid_is_available()
   struct cpuid_ctx cpuid_ctx = cpuid_ctx_get();
 
   // Get details located at the same CPUID function regardless of the CPU's manucturer
-  cpu_specs_set_defaults();
   cpu_specs_get_common_instructions(cpuid_ctx);
 
   s32 cpu_manufacturer_ecx;
@@ -365,6 +401,7 @@ void cpu_specs_init()
     cpu_specs_intel_get_cache_specs(cpuid_ctx);
     cpu_specs_intel_get_instructions(cpuid_ctx);
   }
+  
   // TODO: would it be interesting to check for lesser known manufacturers?
   // Check what their share is and was on the market
   // - Centaur/Zhaoxin
@@ -380,19 +417,9 @@ void cpu_specs_init()
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 //// CPU identity
-void cpu_identity_set_defaults()
+void cpu_identity_init(void)
 {
-  cpu_identity.family          = 0;
-  cpu_identity.model           = 0;
-  cpu_identity.stepping        = 0;
-  cpu_identity.manufacturer[0] = '\0';
-  cpu_identity.name[11]        = '\0';
-}
-
-void cpu_identity_init()
-{
-  cpu_identity_set_defaults();
-  
+  // CPUID must be available to initiliaze the CPU's identity. See cpuid_is_available()
   s32 cpuid_out[4];
   __cpuidex(cpuid_out, 0x0, 0x0);
 
