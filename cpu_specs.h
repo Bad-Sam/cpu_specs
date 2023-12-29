@@ -21,8 +21,9 @@ enum cpu_manufacturer
 enum cache_level
 {
   L1 = 0,
-  L2 = 1,
-  L3 = 2,
+  L2,
+  L3,
+  L4,
   CACHE_LEVEL_COUNT
 };
 
@@ -115,14 +116,21 @@ struct cpu_identity
 extern struct cpu_specs    cpu_specs;
 extern struct cpu_identity cpu_identity;
 
+// Check whether the CPUID instruction is available. If available, returns 1. Otherwise, returns 0.
+// To avoid an invalid-opcode exception, cpu_specs_init(), cpu_identity_init() and cpuid_ctx_get()
+// should be called only if this returns 1
+u32 cpuid_is_available(void);
+
 // Initialize or refresh the global cpu_specs struct
-void cpu_specs_init();
+void cpu_specs_init(void);
 
 // Initialize or refresh the global cpu_identity struct.
 // This is useful for statistics, dumps or to tune some performance-sensitive code to avoid certain
-// instructions which may behave abnormally on specific CPUs
-void cpu_identity_init();
+// instructions which may behave abnormally on specific CPUs. Since this is a very specialized way
+// of tuning code which is quite nich, this is separate from cpu_specs_init() and the cpu_specs
+// struct
+void cpu_identity_init(void);
 
 // Initialize and return a cpuid_ctx structure.
 // This is used by cpu_specs_init(), but may be useful for debugging purposes.
-struct cpuid_ctx cpuid_ctx_get();
+struct cpuid_ctx cpuid_ctx_get(void);
