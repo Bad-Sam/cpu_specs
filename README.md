@@ -18,8 +18,8 @@ int main()
   }
   else
   {
-    // Required CPU features unavailable. Present an error message explaining why the program can't
-    // be run and exit early
+    // Required CPU features unavailable. Present an error message explaining why the program
+    // can't be run and exit early
   }
   
   return 0;
@@ -46,10 +46,10 @@ cpu_specs can detect:
 
 CPU features are initialized with `cpu_specs_init()`, and are then accessible in the global
 variable `cpu_specs`.  
-CPU identity is initialized with `cpu_identity_init()`, and are then accessible in the global
+CPU identity fields are initialized with `cpu_identity_init()`, and are then accessible in the global
 variable `cpu_identity`.  
   
-No dynamic allocation are performed. The C standard library isn't used.  
+No dynamic allocation is performed. The C standard library isn't used.  
   
 The detection of features is currently solely based on the [CPUID instruction](https://en.wikipedia.org/wiki/CPUID).  
 
