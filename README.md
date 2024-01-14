@@ -61,7 +61,6 @@ No dynamic allocation is performed. The C standard library isn't used.
 
 
 ## Possible improvements
-- Check for CPUID instruction availability before using it
 - Use Win32 functions for features that couldn't be fetched through CPUID, or when CPUID is unavailable
 - Add additional useful features to `cpu_specs` (page extensions?)
 - Extend support to ARM architectures
