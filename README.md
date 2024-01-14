@@ -44,14 +44,20 @@ cpu_specs can detect:
   - Read time stamp counter instructions (RDTSC/RDTSCP)
 - The CPU's name, manufacturer name, family, model and stepping
 
-CPU features are initialized with `cpu_specs_init()`, and are then accessible in the global
-variable `cpu_specs`.  
-CPU identity fields are initialized with `cpu_identity_init()`, and are then accessible in the global
-variable `cpu_identity`.  
+
+The detection of features is currently solely based on the
+[CPUID instruction](https://en.wikipedia.org/wiki/CPUID), whose availability is checked at runtime.
+When it is avaialble (see `cpuid_is_available()`):
+- CPU features can be initialized with `cpu_specs_init()`, and are then accessible in the global
+  variable `cpu_specs`.
+- CPU identity fields can be initialized with `cpu_identity_init()`, and are then accessible in the
+  global variable `cpu_identity`
+
+When unavailable, `cpu_specs` fields are initialized to represent a low-end CPU (see the top of
+[`cpu_specs.c`](cpu_specs.c)).
   
 No dynamic allocation is performed. The C standard library isn't used.  
-  
-The detection of features is currently solely based on the [CPUID instruction](https://en.wikipedia.org/wiki/CPUID).  
+ 
 
 
 ## Possible improvements
