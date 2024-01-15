@@ -8,11 +8,10 @@ int main()
 {
   cpu_specs_init();
 
-  s32 has_sse4_2      = cpu_specs.instructions & SSE4_2;
-  s32 is_multicore    = cpu_specs.core_count > 1;
-  s32 can_run_program = has_sse4_2 && is_multicore;
+  s32 has_sse4_2   = cpu_specs.instructions & SSE4_2;
+  s32 is_multicore = cpu_specs.core_count > 1;
 
-  if (can_run_program)
+  if (has_sse4_2 && is_multicore)
   {
     // Required CPU features available. Run the program
   }
@@ -29,7 +28,7 @@ int main()
 ## Features
 cpu_specs is designed to run on:
 - Windows XP and above
-- x86 architectures (32- and 64-bits)
+- x86 architectures (32-bit and 64-bit)
 - AMD or Intel CPUs (with defaults for unsupported CPU vendors)
 
 cpu_specs can detect:
@@ -58,7 +57,6 @@ When unavailable, `cpu_specs` fields are initialized to represent a low-end CPU 
   
 No dynamic allocation is performed. The C standard library isn't used.  
  
-
 
 ## Possible improvements
 - Use Win32 functions for features that couldn't be fetched through CPUID, or when CPUID is unavailable
