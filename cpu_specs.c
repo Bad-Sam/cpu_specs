@@ -361,7 +361,7 @@ static void cpu_specs_get_common_instructions(struct cpuid_ctx cpuid_ctx)
 //// CPUID context
 struct cpuid_ctx cpuid_ctx_get(void)
 {
-  struct cpuid_ctx cpuid_ctx;
+  struct cpuid_ctx cpuid_ctx = {.max_standard_func = 0u, .max_extended_func = 0u};
   if (cpuid_is_available())
   {
     
