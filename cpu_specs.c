@@ -34,7 +34,11 @@ struct cpu_specs cpu_specs =
   .cache_line_size                           = 64,
   .threads_per_core                          = 1,
   .core_count                                = 1,
+#if defined(ISA_x64)
+  .instructions                              = SSE1 | SSE2
+#else
   .instructions                              = 0
+#endif
 };
 
 struct cpu_identity cpu_identity =
@@ -358,14 +362,17 @@ static void cpu_specs_get_common_instructions(struct cpuid_ctx cpuid_ctx)
 struct cpuid_ctx cpuid_ctx_get(void)
 {
   struct cpuid_ctx cpuid_ctx;
+  if (cpuid_is_available())
+  {
+    
+    s32 cpuid_out[4];
+    __cpuidex(cpuid_out, 0x0, 0x0);
+    cpuid_ctx.max_standard_func = *(u32*)&cpuid_out[EAX];
+    
+    __cpuidex(cpuid_out, 0x80000000, 0x0);
+    cpuid_ctx.max_extended_func = *(u32*)&cpuid_out[EAX];
+  }
   
-  s32 cpuid_out[4];
-  __cpuidex(cpuid_out, 0x0, 0x0);
-  cpuid_ctx.max_standard_func = *(u32*)&cpuid_out[EAX];
-  
-  __cpuidex(cpuid_out, 0x80000000, 0x0);
-  cpuid_ctx.max_extended_func = *(u32*)&cpuid_out[EAX];
-
   return cpuid_ctx;
 }
 
@@ -374,44 +381,55 @@ struct cpuid_ctx cpuid_ctx_get(void)
 //// CPU specs
 void cpu_specs_init(void)
 {
-  // CPUID must be available to initiliaze the CPU's specs. See cpuid_is_available()
-  struct cpuid_ctx cpuid_ctx = cpuid_ctx_get();
-
-  // Get details located at the same CPUID function regardless of the CPU's manucturer
-  cpu_specs_get_common_instructions(cpuid_ctx);
-
-  s32 cpu_manufacturer_ecx;
+  if (cpuid_is_available())
   {
-    s32 cpuid_out[4];
-    __cpuidex(cpuid_out, 0x0, 0x0);
-    cpu_manufacturer_ecx = cpuid_out[ECX];
-  }
+    // CPUID must be available to initiliaze the CPU's specs. See cpuid_is_available()
+    struct cpuid_ctx cpuid_ctx;
+    {
+      s32 cpuid_out[4];
+      __cpuidex(cpuid_out, 0x0, 0x0);
+      cpuid_ctx.max_standard_func = *(u32*)&cpuid_out[EAX];
+      
+      __cpuidex(cpuid_out, 0x80000000, 0x0);
+      cpuid_ctx.max_extended_func = *(u32*)&cpuid_out[EAX];
+    }
 
-  if (cpu_manufacturer_ecx == CPU_MANUFACTURER_AMD)
-  {
-    // Call order matters here
-    cpu_specs_amd_get_thread_specs(cpuid_ctx);
-    cpu_specs_amd_get_cache_specs(cpuid_ctx);
-    cpu_specs_amd_get_instructions(cpuid_ctx);
+    // Get details located at the same CPUID function regardless of the CPU's manucturer
+    cpu_specs_get_common_instructions(cpuid_ctx);
+
+    s32 cpu_manufacturer_ecx;
+    {
+      s32 cpuid_out[4];
+      __cpuidex(cpuid_out, 0x0, 0x0);
+      cpu_manufacturer_ecx = cpuid_out[ECX];
+    }
+
+    if (cpu_manufacturer_ecx == CPU_MANUFACTURER_AMD)
+    {
+      // Call order matters here
+      cpu_specs_amd_get_thread_specs(cpuid_ctx);
+      cpu_specs_amd_get_cache_specs(cpuid_ctx);
+      cpu_specs_amd_get_instructions(cpuid_ctx);
+    }
+    else if (cpu_manufacturer_ecx == CPU_MANUFACTURER_INTEL)
+    {
+      // Call order matters here
+      cpu_specs_intel_get_thread_specs(cpuid_ctx);
+      cpu_specs_intel_get_cache_specs(cpuid_ctx);
+      cpu_specs_intel_get_instructions(cpuid_ctx);
+    }
+    
+    // TODO: would it be interesting to check for lesser known manufacturers?
+    // Check what their share is and was on the market
+    // - Centaur/Zhaoxin
+    // - Cyrix
+    // - Geode
+    // - Hygon
+    // - Qualcomm
+    // - Rise
+    // - Vortex
+    // - ...
   }
-  else if (cpu_manufacturer_ecx == CPU_MANUFACTURER_INTEL)
-  {
-    // Call order matters here
-    cpu_specs_intel_get_thread_specs(cpuid_ctx);
-    cpu_specs_intel_get_cache_specs(cpuid_ctx);
-    cpu_specs_intel_get_instructions(cpuid_ctx);
-  }
-  
-  // TODO: would it be interesting to check for lesser known manufacturers?
-  // Check what their share is and was on the market
-  // - Centaur/Zhaoxin
-  // - Cyrix
-  // - Geode
-  // - Hygon
-  // - Qualcomm
-  // - Rise
-  // - Vortex
-  // - ...
 }
 
 
@@ -419,48 +437,51 @@ void cpu_specs_init(void)
 //// CPU identity
 void cpu_identity_init(void)
 {
-  // CPUID must be available to initiliaze the CPU's identity. See cpuid_is_available()
-  s32 cpuid_out[4];
-  __cpuidex(cpuid_out, 0x0, 0x0);
-
-  // Copy the CPU's manufacturer string in groups of 4 characters.
-  // EDX and ECX are intentionally swapped, this is how it is stored
-  u32* manufacturer_4bytes = (u32*)cpu_identity.manufacturer;
-  *manufacturer_4bytes++ = cpuid_out[EBX];
-  *manufacturer_4bytes++ = cpuid_out[EDX];
-  *manufacturer_4bytes   = cpuid_out[ECX];
-
-  // Get the CPU family, model and stepping
-  __cpuidex(cpuid_out, 0x1, 0x0);
-  s32 family_model_stepping = cpuid_out[EAX];
-  cpu_identity.family       = (family_model_stepping >> 8) & 0xF;
-  cpu_identity.model        = (family_model_stepping >> 4) & 0xF;
-  cpu_identity.stepping     = family_model_stepping & 0xF;
-
-  if (cpu_identity.family == 0xF)
+  if (cpuid_is_available())
   {
-    s32 extended_family = (family_model_stepping >> 20) & 0xFF;
-    cpu_identity.family += extended_family;
+    // CPUID must be available to initiliaze the CPU's identity. See cpuid_is_available()
+    s32 cpuid_out[4];
+    __cpuidex(cpuid_out, 0x0, 0x0);
 
-    s32 extended_model = (family_model_stepping >> 12) & 0xF0;
-    cpu_identity.model |= extended_model;
-  }
+    // Copy the CPU's manufacturer string in groups of 4 characters.
+    // EDX and ECX are intentionally swapped, this is how it is stored
+    u32* manufacturer_4bytes = (u32*)cpu_identity.manufacturer;
+    *manufacturer_4bytes++ = cpuid_out[EBX];
+    *manufacturer_4bytes++ = cpuid_out[EDX];
+    *manufacturer_4bytes   = cpuid_out[ECX];
 
-  s32 manufacturer_ecx = *(s32*)(cpu_identity.manufacturer + 8);
-  if ((manufacturer_ecx == CPU_MANUFACTURER_INTEL) && (cpu_identity.family == 0x6))
-  {
-    s32 extended_model = (family_model_stepping >> 12) & 0xF0;
-    cpu_identity.model |= extended_model;
-  }
+    // Get the CPU family, model and stepping
+    __cpuidex(cpuid_out, 0x1, 0x0);
+    s32 family_model_stepping = cpuid_out[EAX];
+    cpu_identity.family       = (family_model_stepping >> 8) & 0xF;
+    cpu_identity.model        = (family_model_stepping >> 4) & 0xF;
+    cpu_identity.stepping     = family_model_stepping & 0xF;
 
-  // If available, get the processor name string
-  __cpuidex(cpuid_out, 0x80000000, 0x0);
-  u32 cpuid_max_extended_func = *(u32*)&cpuid_out[EAX];
-  if (cpuid_max_extended_func >= 0x80000004)
-  {
-    // Writes the 48 bytes (3 x 4 x 4 bytes) of the processor name 
-    __cpuidex((s32*)(cpu_identity.name),      0x80000002, 0x0);
-    __cpuidex((s32*)(cpu_identity.name + 16), 0x80000003, 0x0);
-    __cpuidex((s32*)(cpu_identity.name + 32), 0x80000004, 0x0);
+    if (cpu_identity.family == 0xF)
+    {
+      s32 extended_family = (family_model_stepping >> 20) & 0xFF;
+      cpu_identity.family += extended_family;
+
+      s32 extended_model = (family_model_stepping >> 12) & 0xF0;
+      cpu_identity.model |= extended_model;
+    }
+
+    s32 manufacturer_ecx = *(s32*)(cpu_identity.manufacturer + 8);
+    if ((manufacturer_ecx == CPU_MANUFACTURER_INTEL) && (cpu_identity.family == 0x6))
+    {
+      s32 extended_model = (family_model_stepping >> 12) & 0xF0;
+      cpu_identity.model |= extended_model;
+    }
+
+    // If available, get the processor name string
+    __cpuidex(cpuid_out, 0x80000000, 0x0);
+    u32 cpuid_max_extended_func = *(u32*)&cpuid_out[EAX];
+    if (cpuid_max_extended_func >= 0x80000004)
+    {
+      // Writes the 48 bytes (3 x 4 x 4 bytes) of the processor name 
+      __cpuidex((s32*)(cpu_identity.name),      0x80000002, 0x0);
+      __cpuidex((s32*)(cpu_identity.name + 16), 0x80000003, 0x0);
+      __cpuidex((s32*)(cpu_identity.name + 32), 0x80000004, 0x0);
+    }
   }
 }
