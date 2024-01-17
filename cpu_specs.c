@@ -2,9 +2,16 @@
 #include "isa.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-//// Helper
+//// Helpers
 #define KiB(x) ((x) * 1024)
 
+static inline s32 update_inst_availability(s32 instructions, s32 flags, s32 flag_bit, s32 feature_mask)
+{
+  s32 isolated_bit = (flags >> flag_bit) & 0b1;
+  s32 xor_mask     = (-isolated_bit ^ instructions) & feature_mask;
+
+  return instructions ^ xor_mask;
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 //// Intrinsics
@@ -199,13 +206,13 @@ static void cpu_specs_amd_get_instructions(struct cpuid_ctx cpuid_ctx)
   {
     __cpuidex(cpuid_out, 0xD, 0x5);
     s32 avx512_available    = (cpuid_out[EAX] == 0x40) && (cpuid_out[EBX] == 0x340);
-    cpu_specs.instructions |= avx512_available * AVX512F;
+    cpu_specs.instructions ^= (-avx512_available ^ cpu_specs.instructions) & AVX512F;
   }
 
   if (cpuid_ctx.max_extended_func >= 0xB)
   {
     __cpuidex(cpuid_out, 0x80000001, 0x0);
-    cpu_specs.instructions |= ((cpuid_out[ECX] >> 21) & 0b1) * TBM;
+    cpu_specs.instructions = update_inst_availability(cpu_specs.instructions, cpuid_out[ECX], 21, TBM);
   }
 }
 
@@ -299,7 +306,7 @@ static void cpu_specs_intel_get_instructions(struct cpuid_ctx cpuid_ctx)
   {
     s32 cpuid_out[4];
     __cpuidex(cpuid_out, 0x7, 0x0);
-    cpu_specs.instructions |= ((cpuid_out[EBX] & (1 << 16)) >> 16) * AVX512F;
+    cpu_specs.instructions = update_inst_availability(cpu_specs.instructions, cpuid_out[EBX], 16, AVX512F);
   }
 }
 
@@ -327,33 +334,37 @@ static void cpu_specs_get_common_instructions(struct cpuid_ctx cpuid_ctx)
   s32 cpuid_out[4];
   __cpuidex(cpuid_out, 0x1, 0x0);
 
-  cpu_specs.instructions |= ((cpuid_out[EDX] >>  4) & 0b1) * RDTSCP;
-  cpu_specs.instructions |= ((cpuid_out[EDX] >> 25) & 0b1) * SSE1;
-  cpu_specs.instructions |= ((cpuid_out[EDX] >> 26) & 0b1) * SSE2;
-  cpu_specs.instructions |= ((cpuid_out[ECX] >>  0) & 0b1) * SSE3;
-  cpu_specs.instructions |= ((cpuid_out[ECX] >>  9) & 0b1) * SSSE3;
-  cpu_specs.instructions |= ((cpuid_out[ECX] >> 12) & 0b1) * FMA3;
-  cpu_specs.instructions |= ((cpuid_out[ECX] >> 19) & 0b1) * SSE4_1;
-  cpu_specs.instructions |= ((cpuid_out[ECX] >> 20) & 0b1) * SSE4_2;
-  cpu_specs.instructions |= ((cpuid_out[ECX] >> 23) & 0b1) * POPCNT;
-  cpu_specs.instructions |= ((cpuid_out[ECX] >> 28) & 0b1) * AVX1;
-  cpu_specs.instructions |= ((cpuid_out[ECX] >> 29) & 0b1) * F16C;
-
+  // Conditionally set or unset instructions. This prevents instructions expected to be available
+  // by default from having their bit remaining set (1), when they are in fact not available (0)
+  s32 instructions = cpu_specs.instructions;
+  instructions = update_inst_availability(instructions, cpuid_out[EDX],  4, RDTSCP);
+  instructions = update_inst_availability(instructions, cpuid_out[EDX], 25, SSE1);
+  instructions = update_inst_availability(instructions, cpuid_out[EDX], 26, SSE2);
+  instructions = update_inst_availability(instructions, cpuid_out[ECX],  0, SSE3);
+  instructions = update_inst_availability(instructions, cpuid_out[ECX],  9, SSSE3);
+  instructions = update_inst_availability(instructions, cpuid_out[ECX], 12, FMA3);
+  instructions = update_inst_availability(instructions, cpuid_out[ECX], 19, SSE4_1);
+  instructions = update_inst_availability(instructions, cpuid_out[ECX], 20, SSE4_2);
+  instructions = update_inst_availability(instructions, cpuid_out[ECX], 23, POPCNT);
+  instructions = update_inst_availability(instructions, cpuid_out[ECX], 28, AVX1);
+  instructions = update_inst_availability(instructions, cpuid_out[ECX], 29, F16C);
+  
   if (cpuid_ctx.max_standard_func >= 0x7)
   {
     __cpuidex(cpuid_out, 0x7, 0x0);
-    s32 bmi1_available = (cpuid_out[EBX] >> 3) & 0b1;
-    cpu_specs.instructions |= bmi1_available * BMI1;
-    cpu_specs.instructions |= bmi1_available * TZCNT;
-    cpu_specs.instructions |= ((cpuid_out[EBX] >> 5) & 0b1) * AVX2;
-    cpu_specs.instructions |= ((cpuid_out[EBX] >> 8) & 0b1) * BMI2;
+    instructions = update_inst_availability(instructions, cpuid_out[EBX], 3, BMI1);
+    instructions = update_inst_availability(instructions, cpuid_out[EBX], 3, TZCNT);
+    instructions = update_inst_availability(instructions, cpuid_out[EBX], 5, AVX2);
+    instructions = update_inst_availability(instructions, cpuid_out[EBX], 8, BMI2);
 
     if (cpuid_ctx.max_extended_func >= 0x80000001)
     {
       __cpuidex(cpuid_out, 0x80000001, 0x0);
-      cpu_specs.instructions |= ((cpuid_out[ECX] >> 5) & 0b1) * LZCNT;
+      instructions = update_inst_availability(instructions, cpuid_out[ECX], 5, LZCNT);
     }
   }
+
+  cpu_specs.instructions = instructions;
 }
 
 
