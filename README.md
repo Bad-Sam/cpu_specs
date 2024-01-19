@@ -52,14 +52,13 @@ When it is avaialble (see `cpuid_is_available()`):
 - CPU identity fields can be initialized with `cpu_identity_init()`, and are then accessible in the
   global variable `cpu_identity`
 
-When unavailable, `cpu_specs` fields are initialized to represent a low-end CPU (see the top of
+When CPUID is unavailable, `cpu_specs` fields are initialized to represent a low-end CPU (see the top of
 [`cpu_specs.c`](cpu_specs.c)).
   
 No dynamic allocation is performed. The C standard library isn't used.  
  
 
 ## Possible improvements
-- Use Win32 functions for features that couldn't be fetched through CPUID, or when CPUID is unavailable
 - Add additional useful features to `cpu_specs` (page extensions?)
 - Extend support to ARM architectures
 - Extend support to UNIX-based operating systems (implies gcc support)
