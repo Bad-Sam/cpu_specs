@@ -59,6 +59,9 @@ No dynamic allocation is performed. The C standard library isn't used.
  
 
 ## Possible improvements
+- Properly detect and distinguish efficient and performance cores, such as with the
+[Intel Core i7-12800HX](https://www.cpu-world.com/CPUs/Core_i7/Intel-Core%20i7%20i7-12800HX.html),
+and return their accurate number of cores
 - Add additional useful features to `cpu_specs` (page extensions?)
 - Extend support to ARM architectures
 - Extend support to UNIX-based operating systems (implies gcc support)
