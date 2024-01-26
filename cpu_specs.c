@@ -60,7 +60,7 @@ struct cpu_identity cpu_identity =
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 //// AMD functions
-static void cpu_specs_amd_get_thread_specs(struct cpuid_ctx cpuid_ctx)
+static void cpu_specs_amd_get_cores_info(struct cpuid_ctx cpuid_ctx)
 {
   s32 cpuid_out[4];
 
@@ -124,7 +124,7 @@ static void cpu_specs_amd_get_thread_specs(struct cpuid_ctx cpuid_ctx)
   }
 }
 
-static void cpu_specs_amd_get_cache_specs(struct cpuid_ctx cpuid_ctx)
+static void cpu_specs_amd_get_caches_info(struct cpuid_ctx cpuid_ctx)
 {
   s32 cpuid_out[4];
   if (cpuid_ctx.max_extended_func >= 0x8000001D)
@@ -219,7 +219,7 @@ static void cpu_specs_amd_get_instructions(struct cpuid_ctx cpuid_ctx)
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 //// Intel functions
-static void cpu_specs_intel_get_thread_specs(struct cpuid_ctx cpuid_ctx)
+static void cpu_specs_intel_get_cores_info(struct cpuid_ctx cpuid_ctx)
 {
   s32 cpuid_out[4];
   if (cpuid_ctx.max_standard_func >= 0xB)
@@ -247,7 +247,7 @@ static void cpu_specs_intel_get_thread_specs(struct cpuid_ctx cpuid_ctx)
   }
 }
 
-static void cpu_specs_intel_get_cache_specs(struct cpuid_ctx cpuid_ctx)
+static void cpu_specs_intel_get_caches_info(struct cpuid_ctx cpuid_ctx)
 {
   if (cpuid_ctx.max_standard_func >= 0x4)
   {
@@ -418,15 +418,15 @@ void cpu_specs_init(void)
     if (cpu_manufacturer_ecx == CPU_MANUFACTURER_AMD)
     {
       // Call order matters here
-      cpu_specs_amd_get_thread_specs(cpuid_ctx);
-      cpu_specs_amd_get_cache_specs(cpuid_ctx);
+      cpu_specs_amd_get_cores_info(cpuid_ctx);
+      cpu_specs_amd_get_caches_info(cpuid_ctx);
       cpu_specs_amd_get_instructions(cpuid_ctx);
     }
     else if (cpu_manufacturer_ecx == CPU_MANUFACTURER_INTEL)
     {
       // Call order matters here
-      cpu_specs_intel_get_thread_specs(cpuid_ctx);
-      cpu_specs_intel_get_cache_specs(cpuid_ctx);
+      cpu_specs_intel_get_cores_info(cpuid_ctx);
+      cpu_specs_intel_get_caches_info(cpuid_ctx);
       cpu_specs_intel_get_instructions(cpuid_ctx);
     }
     
