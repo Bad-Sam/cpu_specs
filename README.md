@@ -46,11 +46,11 @@ cpu_specs can detect:
 
 The detection of features is currently solely based on the
 [CPUID instruction](https://en.wikipedia.org/wiki/CPUID), whose availability is checked at runtime.
-When it is avaialble (see `cpuid_is_available()`):
+When it is available (see `cpuid_is_available()`):
 - CPU features can be initialized with `cpu_specs_init()`, and are then accessible in the global
   variable `cpu_specs`.
-- CPU identity fields can be initialized with `cpu_identity_init()`, and are then accessible in the
-  global variable `cpu_identity`
+- CPU identity fields (name, manufacturer name, family, model and stepping) can be initialized with
+  `cpu_identity_init()`, and are then accessible in the global variable `cpu_identity`
 
 When CPUID is unavailable, `cpu_specs` fields are initialized to represent a low-end CPU (see the top of
 [`cpu_specs.c`](cpu_specs.c)).
